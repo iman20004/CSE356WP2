@@ -4,11 +4,12 @@ const Users = require('./models/user-model');
 const Games = require('./models/game-model');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const email_server = require("./email-server");
-const crypto = require('crypto');
+const sendVerification = require("./email-server");
+const crypto = require("crypto");
 
 router.post("/ttt/adduser", async (req,res) => {
     const { username, email, password } = req.body;
+    console.log(req.body.password);
     const existingUser = await Users.findOne({ email: email });
         if (existingUser) {
             return res
@@ -29,18 +30,15 @@ router.post("/ttt/adduser", async (req,res) => {
     const salt = await bcrypt.genSalt(saltRounds);
     const passwordHash = await bcrypt.hash(password, salt);
     const verified = false;
-    const genKey = crypto.generateKeySync('hmac', { length: 128 });
-    const key = genKey.export().toString('hex');
+    const key = crypto.randomBytes(20).toString('hex');
 
     const newUser = new Users({
         username, email, passwordHash, key, verified
     });    
 
     await newUser.save().then(() => {
-        email_server.sendVerification(email,key)
-        return res.json({
-            status: 'OK'
-        });
+        sendVerification(email,key);
+        res.json({status: 'OK'})
     });
 });
 
