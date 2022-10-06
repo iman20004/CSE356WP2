@@ -9,11 +9,9 @@ const UserSchema = new Schema(
         key: { type: String, required: true },
         verified: { type: Boolean, required: true },
         games: { type: [{id: {type: String, required: true}, start_date: {type: String, required: true}}], required: false}, 
-        score: {type: {
-            human: {type: Number, required: true}, 
-            wopr: {type: Number, required: true}, 
-            tie: {type: Number, required: true}
-        }, required: false}
+        human: {type: Number, default: 0}, 
+        wopr: {type: Number, default: 0}, 
+        tie: {type: Number, default: 0}
     },
     { timestamps: true },
 )
