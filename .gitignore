@@ -1,0 +1,15 @@
+node_modules
+.cache
+.bash_history
+.vscode-server
+.ssh
+.npm
+.mongodb
+.local
+.config
+.bashrc
+.wget-hsts
+.node_repl_history
+.profile
+
+
