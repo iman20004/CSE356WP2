@@ -7,30 +7,33 @@
         h1   { font-family: "Permanent Marker"; text-align: center; font-weight: bold}
         .cell { width: 75px; height: 75px; border: 2px solid; box-shadow: 0 0 0 2px;line-height: 75px;
             font-size: 50px; cursor: pointer; font-family: "Permanent Marker", cursive; text-align: center;}
-        #cellContainer { display: grid; grid-template-columns: repeat(3, auto); width: 225px; margin: auto;}
-        button { background-color: red; color: white; cursor: pointer; width: 80px; height: 50px; 
-            border-radius: 8px; margin-left: 690px}
-    </style>  
+        #cellContainer { display: grid; grid-template-columns: repeat(3, auto); width: 250px; margin: auto;}
+        #logoutbtn { background-color: red; color: white; cursor: pointer; width: 80px; height: 50px; 
+            border-radius: 8px; margin-left: 910px}
+    </style>
+    <script>game.js</script>
 </head>
 
 <body>
     <h1>Tic Tac Toe</h1>
     <div id="cellContainer">
-        <div id="0" class="cell"></div>
-        <div id="1" class="cell"></div>
-        <div id="2" class="cell"></div>
-        <div id="3" class="cell"></div>
-        <div id="4" class="cell"></div>
-        <div id="5" class="cell"></div>
-        <div id="6" class="cell"></div>
-        <div id="7" class="cell"></div>
-        <div id="8" class="cell"></div>
+        <form action="http://209.94.56.64/ttt/play" method="post">
+            <button class="cell" type="submit" name="move" value="0"></button>
+            <button class="cell" type="submit" name="move" value="1"></button>
+            <button class="cell" type="submit" name="move" value="2"></button>
+            <button class="cell" type="submit" name="move" value="3"></button>
+            <button class="cell" type="submit" name="move" value="4"></button>
+            <button class="cell" type="submit" name="move" value="5"></button>
+            <button class="cell" type="submit" name="move" value="6"></button>
+            <button class="cell" type="submit" name="move" value="7"></button>
+            <button class="cell" type="submit" name="move" value="8"></button>
+        </form>
     </div>
 
     <br>
     <br>
     <form action="http://209.94.56.64/ttt/logout" method="post">
-        <button type="submit" class="logoutbtn">Logout</button>   
+        <button type="submit" id="logoutbtn">Logout</button>   
     </form>
 </body>
 

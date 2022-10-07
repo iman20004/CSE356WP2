@@ -8,7 +8,7 @@ const UserSchema = new Schema(
         passwordHash: { type: String, required: true },
         key: { type: String, required: true },
         verified: { type: Boolean, required: true },
-        games: { type: [{id: {type: String, required: true}, start_date: {type: String, required: true}}], required: false}, 
+        games: { type: [{id: {type: String, required: true}, start_date: {type: String, required: true}}], default: []}, 
         human: {type: Number, default: 0}, 
         wopr: {type: Number, default: 0}, 
         tie: {type: Number, default: 0}

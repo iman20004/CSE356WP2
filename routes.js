@@ -4,11 +4,9 @@ const Users = require('./models/user-model');
 const Games = require('./models/game-model');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const sendVerification = require("./email-server");
 const crypto = require("crypto");
 const auth = require('./auth');
 const path = require('path');
-require("dotenv").config();
 
 router.get("/ttt/adduser", (req, res) => {
     res.sendFile(path.join(__dirname, '/html/register.html'));
@@ -44,8 +42,8 @@ router.post("/ttt/adduser", async (req, res) => {
     const saltRounds = 10;
     const salt = await bcrypt.genSalt(saltRounds);
     const passwordHash = await bcrypt.hash(password, salt);
-    //const verified = false;
-    const verified = true;
+    const verified = false;
+    //const verified = true;
     const key = crypto.randomBytes(20).toString('hex');
 
     const newUser = new Users({
@@ -53,10 +51,28 @@ router.post("/ttt/adduser", async (req, res) => {
     });
 
     await newUser.save().then(() => {
-        //sendVerification(email, key);
-        res.json({ status: "Please verify email first" })
+        sendVerification(email, key);
+        res.json({ status: 'OK' })
     });
 });
+
+const sendVerification = (email, key) => {
+    const { exec } = require("child_process");
+    var link = `\"http://209.94.56.64/ttt/verify/?email=${email}&key=${key}\"`;
+    var command = "echo "+ link +" | mail -s Verification Link "+email;
+    console.log(link);
+    exec(command, (error,stdout,stderr) => {
+        if (error) {
+            console.log(`error: ${error.message}`);
+            return;
+        }
+        if (stderr) {
+            console.log(`stderr: ${stderr}`);
+            return;
+        }
+        console.log(`stdout: ${stdout}`);
+    });
+}
 
 router.get("/ttt/verify", async (req, res) => {
     const user = await Users.findOne({ email: req.query.email, key: req.query.key })
@@ -72,12 +88,17 @@ router.get("/ttt/verify", async (req, res) => {
     }
 });
 
+
 router.post("/ttt/login", async (req, res) => {
     const { username, password } = req.body;
 
     const foundUser = await Users.findOne({ username: username });
 
     if (!foundUser) {
+        return res.status(400).json({ status: 'ERROR'});
+    }
+
+    if (!foundUser.verified) {
         return res.status(400).json({ status: 'ERROR'});
     }
 
@@ -111,6 +132,13 @@ router.post("/ttt/logout", async (req, res) => {
     res.clearCookie("currentGameId", {maxAge: 0});
     return res.status(200).json({status: 'OK'}); 
 });
+
+
+
+
+
+
+// .............................................. GAME LOGIC ..................................................
 
 const serverMakeMove = (grid) => {
     let smove = Math.floor(Math.random() * grid.length);
@@ -158,11 +186,12 @@ router.post("/ttt/play", async (req, res) => {
     const user = await Users.findOne({ username: req.cookies.username });
     if(!req.cookies.currentGameId){ //if no current game create new game
         let grid = [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ']
+        let winner = ' ';
         if(move){
             grid[move] = 'X'
             serverMakeMove(grid);
         }
-        const newGame = new Games({grid});
+        const newGame = new Games({grid, winner});
         await newGame.save();
         res.cookie("currentGameId", newGame._id, {maxAge: 6.048e+8});
         user.games = [{id: newGame._id, start_date: Date.now().toLocaleString}, ...user.games]; //add game to user array
