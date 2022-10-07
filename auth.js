@@ -6,6 +6,7 @@ function authManager() {
         try {
             const token = req.cookies.token;
             if (!token) {
+                console.log("no token");
                 return res.json({
                     status: 'ERROR'
                 })

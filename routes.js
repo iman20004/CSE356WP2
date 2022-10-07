@@ -114,7 +114,6 @@ router.post("/login", async (req, res) => {
         res.cookie("username", foundUser.username, {maxAge: 6.048e+8});
         return res.cookie("token", token, {
             httpOnly: true,
-            secure: true,
             sameSite: "none",
             maxAge: 6.048e+8
         }).json({status: 'OK'});
@@ -126,7 +125,6 @@ router.post("/login", async (req, res) => {
 router.post("/logout", async (req, res) => {
     res.clearCookie("token", {
         httpOnly: true,
-        secure: true,
         sameSite: "none",
         maxAge: 0 
     }); 
@@ -237,7 +235,7 @@ router.post("/ttt/play", auth.verify, async (req, res) => {
 
 router.post("/listgames", auth.verify, async (req, res) => {
     const user = await Users.findOne({ username: req.cookies.username });
-
+    console.log(user);
     res.json({status: 'OK', games: user.games});
 });
 
