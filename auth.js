@@ -6,7 +6,7 @@ function authManager() {
         try {
             const token = req.cookies.token;
             if (!token) {
-                return res.status(401).json({
+                return res.json({
                     status: 'ERROR'
                 })
             }
@@ -17,7 +17,7 @@ function authManager() {
             next();
         } catch (err) {
             console.error(err);
-            return res.status(401).json({
+            return res.json({
                 status: 'ERROR'
             });
         }

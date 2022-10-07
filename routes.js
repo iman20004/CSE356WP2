@@ -8,19 +8,19 @@ const crypto = require("crypto");
 const auth = require('./auth');
 const path = require('path');
 
-router.get("/ttt/adduser", (req, res) => {
+router.get("/adduser", (req, res) => {
     res.sendFile(path.join(__dirname, '/html/register.html'));
 });
 
-router.get("/ttt/login", (req, res) => {
+router.get("/login", (req, res) => {
     res.sendFile(path.join(__dirname, '/html/login.html'));
 });
 
-router.get("/ttt/play", (req, res) => {
+router.get("/play", (req, res) => {
     res.sendFile(path.join(__dirname, '/html/game.html'));
 });
 
-router.post("/ttt/adduser", async (req, res) => {
+router.post("/adduser", async (req, res) => {
     const { username, email, password } = req.body;
     console.log(req.body.password);
     const existingUser = await Users.findOne({ email: email });
@@ -43,7 +43,6 @@ router.post("/ttt/adduser", async (req, res) => {
     const salt = await bcrypt.genSalt(saltRounds);
     const passwordHash = await bcrypt.hash(password, salt);
     const verified = false;
-    //const verified = true;
     const key = crypto.randomBytes(20).toString('hex');
 
     const newUser = new Users({
@@ -58,8 +57,8 @@ router.post("/ttt/adduser", async (req, res) => {
 
 const sendVerification = (email, key) => {
     const { exec } = require("child_process");
-    var link = `\"http://209.94.56.64/ttt/verify/?email=${email}&key=${key}\"`;
-    var command = "echo "+ link +" | mail -s Verification Link "+email;
+    var link = `\"http://209.94.56.64/verify/?email=${email}&key=${key}\"`
+    var command = `echo ${link} | mail -s=Verification Link --encoding=quoted-printable ${email}`;
     console.log(link);
     exec(command, (error,stdout,stderr) => {
         if (error) {
@@ -74,54 +73,57 @@ const sendVerification = (email, key) => {
     });
 }
 
-router.get("/ttt/verify", async (req, res) => {
-    const user = await Users.findOne({ email: req.query.email, key: req.query.key })
+router.get("/verify", async (req, res) => {
+    console.log("in verify route");
+    console.log(req.query.key);
+    const user = await Users.findOne({ key: req.query.key })
     if (user) {
         user.verified = true
-        await user.save()
-        //res.redirect('/')
-        res.json({status: 'OK'})
+        console.log("verified user!")
+        await user.save();
+        return res.json({status: 'OK'});
     } else {
-        res.json({
+        console.log('wrong key');
+        return res.json({
             status: 'ERROR'
         });
     }
 });
 
 
-router.post("/ttt/login", async (req, res) => {
+router.post("/login", async (req, res) => {
     const { username, password } = req.body;
 
     const foundUser = await Users.findOne({ username: username });
 
     if (!foundUser) {
-        return res.status(400).json({ status: 'ERROR'});
+        console.log('no user');
+        return res.json({ status: 'ERROR'});
     }
 
     if (!foundUser.verified) {
-        return res.status(400).json({ status: 'ERROR'});
+        console.log('not verified');
+        return res.json({ status: 'ERROR'});
     }
 
     const match = await bcrypt.compare(password, foundUser.passwordHash);
     if (match) {
         const token = auth.signToken(foundUser);
-        console.log(token)
+        console.log(token);
 
         res.cookie("username", foundUser.username, {maxAge: 6.048e+8});
-        await res.cookie("token", token, {
+        return res.cookie("token", token, {
             httpOnly: true,
             secure: true,
             sameSite: "none",
             maxAge: 6.048e+8
-        })
-        res.sendFile(path.join(__dirname, '/html/game.html'));
-
+        }).json({status: 'OK'});
     } else {
-        return res.status(400).json({ status: 'ERROR'});
+        return res.json({ status: 'ERROR'});
     }
 });
 
-router.post("/ttt/logout", async (req, res) => {
+router.post("/logout", async (req, res) => {
     res.clearCookie("token", {
         httpOnly: true,
         secure: true,
@@ -130,7 +132,7 @@ router.post("/ttt/logout", async (req, res) => {
     }); 
     res.clearCookie("username", {maxAge: 0});
     res.clearCookie("currentGameId", {maxAge: 0});
-    return res.status(200).json({status: 'OK'}); 
+    return res.json({status: 'OK'}); 
 });
 
 
@@ -178,7 +180,7 @@ const checkWinner = (grid) => {
     return winner;
 }
 
-router.post("/ttt/play", async (req, res) => {
+router.post("/ttt/play", auth.verify, async (req, res) => {
     const {move} = req.body; 
     if(move < 0 || move > 8) //verify move? idk 
         res.json({status: 'ERROR'});
@@ -187,14 +189,14 @@ router.post("/ttt/play", async (req, res) => {
     if(!req.cookies.currentGameId){ //if no current game create new game
         let grid = [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ']
         let winner = ' ';
-        if(move){
+        if(move !== null){
             grid[move] = 'X'
             serverMakeMove(grid);
         }
         const newGame = new Games({grid, winner});
         await newGame.save();
         res.cookie("currentGameId", newGame._id, {maxAge: 6.048e+8});
-        user.games = [{id: newGame._id, start_date: Date.now().toLocaleString}, ...user.games]; //add game to user array
+        user.games = [{id: newGame._id, start_date: Date.now().toLocaleString()}, ...user.games]; //add game to user array
         user.save().then(() => {
             res.json({status: 'OK', grid: grid, winner: ' '});
         });
@@ -203,11 +205,11 @@ router.post("/ttt/play", async (req, res) => {
         const game = await Games.findById(req.cookies.currentGameId); //get current game
         let grid = game.grid;
         let winner = ' '; 
-        if(move){
+        if(move !== null){
             if(grid[move] === ' ') //check if move valid
                 grid[move] = 'X'
             else
-                res.json({status: 'ERROR'});            
+                return res.json({status: 'ERROR'});            
             winner = checkWinner(grid);//check for winner
             if(winner === ' '){
                 serverMakeMove(grid); //server makes move 
@@ -233,22 +235,25 @@ router.post("/ttt/play", async (req, res) => {
 
 });
 
-router.post("/ttt/listgames", async (req, res) => {
+router.post("/listgames", auth.verify, async (req, res) => {
     const user = await Users.findOne({ username: req.cookies.username });
 
-    res.json({status: 'OK', games: !user.games ? [] : user.games});
+    res.json({status: 'OK', games: user.games});
 });
 
-router.post("/ttt/getgame", async (req, res) => {
+router.post("/getgame", auth.verify, async (req, res) => {
     const {id} = req.body; 
     const game = await Games.findById(id); 
+    if(!game){
+        return res.json({status: 'ERROR'}); 
+    }
     
-    res.json({status: 'OK', grid:game.grid, winner: game.winner});
+    return res.json({status: 'OK', grid: game.grid, winner: game.winner});
 });
 
-router.post("/ttt/getscore", async (req, res) => {
+router.post("/getscore", auth.verify, async (req, res) => {
     const user = await Users.findOne({ username: req.cookies.username });
-    
+   
     res.json({status: 'OK', human: user.human, wopr: user.wopr, tie: user.tie});
 });
 
